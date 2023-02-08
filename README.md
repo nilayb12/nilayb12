@@ -1,5 +1,7 @@
 ### Hi there 👋
 
+[![spotify-github-profile](https://spotify-github-profile.vercel.app/api/view?uid=31fjv27st3q3t4s3g4a2hzrvmfri&cover_image=true&theme=default&show_offline=false&background_color=121212&bar_color=53b14f&bar_color_cover=true)](https://spotify-github-profile.vercel.app/api/view?uid=31fjv27st3q3t4s3g4a2hzrvmfri&redirect=true)
+
 <!--
 **nilayb12/nilayb12** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
