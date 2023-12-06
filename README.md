@@ -1,5 +1,5 @@
 <h1 align="center">Hi 👋, I'm Nilay Baranwal</h1>
-<h3 align="center">A frontend developer</h3>
+<h3 align="center">A Frontend Developer in learning</h3>
 
 <p align="left"> <img src="https://komarev.com/ghpvc/?username=nilayb12&label=Profile%20views&color=450045&style=flat" alt="nilayb12" /> </p>
 
