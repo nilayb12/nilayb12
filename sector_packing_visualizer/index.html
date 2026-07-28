@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sector Coverage Map — Sets</title>
+<link href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="map"></div>
+    <canvas id="overlay"></canvas>
+    <div id="tip"></div>
+    <button id="sidebarToggle" title="Toggle panel" aria-label="Toggle panel"><span class="chev">‹</span></button>
+    <div id="stylebar">
+      <select id="styleSel" title="Map style">
+        <option value="dark" selected>Dark</option>
+        <option value="fiord">Fiord (dark slate)</option>
+        <option value="positron">Positron (light)</option>
+        <option value="liberty">Liberty</option>
+        <option value="bright">Bright</option>
+      </select>
+    </div>
+    <div id="measurebar">
+      <button id="measureBtn" title="Measure distance">📏 Measure</button>
+      <div id="measureOut" style="display:none"></div>
+    </div>
+    <div id="picker">
+      <div class="pcard" id="dropzone">
+        <div class="picon">📡</div>
+        <h2>Load sector data</h2>
+        <p>Choose a CSV file with columns:<br><code>sap_id, sector_id, azimuth, latitude, longitude, set_id</code></p>
+        <button id="pickBtn">Choose CSV file</button>
+        <div class="pdrop">or drag &amp; drop a .csv here</div>
+        <div id="perr"></div>
+      </div>
+    </div>
+    <div id="loading" style="display:none"><div class="spin"></div><p id="lmsg">Parsing data...</p></div>
+    <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+  </div>
+  <div id="sidebar">
+    <div id="ctrl">
+      <div class="hdr">
+        <h1>Sector Coverage Map</h1>
+        <span class="sub"><b id="subBw">120</b>&deg; sectors</span>
+      </div>
+      <div class="search">
+        <input id="q" placeholder="Search SAP / site ID..." autocomplete="off">
+        <button id="go">Find</button>
+      </div>
+      <div id="results"></div>
+      <div class="statgrid">
+        <div class="chip"><b id="tot">0</b><span>sectors</span></div>
+        <div class="chip"><b id="sitesN">0</b><span>sites</span></div>
+        <div class="chip"><b id="setsN">0</b><span>sets</span></div>
+        <div class="chip"><b id="selN">0</b><span>selected</span></div>
+        <div class="chip"><b id="vis">0</b><span>drawn</span></div>
+      </div>
+      <div class="sizectl">
+        <div class="sizehdr">
+          <label for="sizeRange">Size <b id="sizeVal">90</b> <span id="sizeUnit">px</span></label>
+          <div class="modetog">
+            <button id="modePx" class="active">px</button>
+            <button id="modeM">m</button>
+          </div>
+        </div>
+        <input type="range" id="sizeRange" min="20" max="300" step="5" value="90">
+      </div>
+      <div class="bwctl">
+        <label>Beamwidth</label>
+        <div class="modetog">
+          <button id="bw120" class="active">120&deg;</button>
+          <button id="bw180">180&deg;</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="lrow"><span class="sw" style="background:#f85149"></span>1</span>
+        <span class="lrow"><span class="sw" style="background:#3fb950"></span>2</span>
+        <span class="lrow"><span class="sw" style="background:#4f9dff"></span>3</span>
+      </div>
+    </div>
+
+    <div id="sets">
+      <div class="sh">
+        <h2>Sets in view <span class="cnt"><b id="setInView">0</b></span></h2>
+        <button id="clearSel">Clear</button>
+      </div>
+      <div id="setlist"></div>
+      <div id="setempty">Pan/zoom the map. Sets with sites in view appear here.</div>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
+
