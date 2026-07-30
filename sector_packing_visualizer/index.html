@@ -16,13 +16,21 @@
     <div id="tip"></div>
     <button id="sidebarToggle" title="Toggle panel" aria-label="Toggle panel"><span class="chev">‹</span></button>
     <div id="stylebar">
-      <select id="styleSel" title="Map style">
-        <option value="dark" selected>Dark</option>
-        <option value="fiord">Fiord (dark slate)</option>
-        <option value="positron">Positron (light)</option>
-        <option value="liberty">Liberty</option>
-        <option value="bright">Bright</option>
+      <select id="styleSel" title="Base map style">
+        <optgroup label="Dark">
+          <option value="dark" selected>Dark — data viz / night</option>
+          <option value="fiord">Fiord — muted slate</option>
+        </optgroup>
+        <optgroup label="Light">
+          <option value="positron">Positron — clean, minimal</option>
+          <option value="liberty">Liberty — detailed streets</option>
+          <option value="bright">Bright — colourful OSM</option>
+        </optgroup>
       </select>
+      <div class="projtog" title="Map projection">
+        <button id="projMercator" class="active">Flat</button>
+        <button id="projGlobe">Globe</button>
+      </div>
     </div>
     <div id="measurebar">
       <button id="measureBtn" title="Measure distance">📏 Measure</button>
@@ -32,7 +40,9 @@
       <div class="pcard" id="dropzone">
         <div class="picon">📡</div>
         <h2>Load sector data</h2>
-        <p>Choose a CSV file with columns:<br><code>sap_id, sector_id, azimuth, latitude, longitude, set_id</code></p>
+        <p>Choose a CSV file with these columns (any of the listed names, case-insensitive):<br>
+        <code>sap_id | site_id</code>, <code>sector_id | uid</code>, <code>azimuth | az</code>,
+        <code>latitude | lat</code>, <code>longitude | long | lon</code>, <code>set_id</code></p>
         <button id="pickBtn">Choose CSV file</button>
         <div class="pdrop">or drag &amp; drop a .csv here</div>
         <div id="perr"></div>
