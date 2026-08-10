@@ -55,11 +55,16 @@
     <div id="ctrl">
       <div class="hdr">
         <h1>Sector Coverage Map</h1>
-        <span class="sub"><b id="subBw">120</b>&deg; sectors</span>
       </div>
       <div class="search">
-        <input id="q" placeholder="Search SAP / site ID..." autocomplete="off">
-        <button id="go">Find</button>
+        <div class="searchmode">
+          <button id="smSite" class="active">Site</button>
+          <button id="smSet">Set</button>
+        </div>
+        <div class="searchbox">
+          <input id="q" placeholder="Search SAP / site ID..." autocomplete="off">
+          <button id="go" title="Search"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/></svg></button>
+        </div>
       </div>
       <div id="results"></div>
       <div class="statgrid">
@@ -70,26 +75,26 @@
         <div class="chip"><b id="vis">0</b><span>drawn</span></div>
       </div>
       <div class="sizectl">
-        <div class="sizehdr">
-          <label for="sizeRange">Size <b id="sizeVal">90</b> <span id="sizeUnit">px</span></label>
+        <input type="range" id="sizeRange" min="20" max="300" step="5" value="90">
+        <span class="sizeval"><b id="sizeVal">90</b> <span id="sizeUnit">px</span></span>
+        <div class="modetog">
+          <button id="modePx" class="active">px</button>
+          <button id="modeM">m</button>
+        </div>
+      </div>
+      <div class="bwrow">
+        <div class="bwctl" id="bwctl">
+          <label>Beamwidth <span id="bwLock" class="bwlock" title="Locked to selected sets' site type"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 0a4 4 0 0 1 4 4v2.05a2.5 2.5 0 0 1 2 2.45v5a2.5 2.5 0 0 1-2.5 2.5h-7A2.5 2.5 0 0 1 2 13.5v-5a2.5 2.5 0 0 1 2-2.45V4a4 4 0 0 1 4-4m0 1a3 3 0 0 0-3 3v2h6V4a3 3 0 0 0-3-3"/></svg></span></label>
           <div class="modetog">
-            <button id="modePx" class="active">px</button>
-            <button id="modeM">m</button>
+            <button id="bw120" class="active">120&deg;</button>
+            <button id="bw180">180&deg;</button>
           </div>
         </div>
-        <input type="range" id="sizeRange" min="20" max="300" step="5" value="90">
-      </div>
-      <div class="bwctl">
-        <label>Beamwidth</label>
-        <div class="modetog">
-          <button id="bw120" class="active">120&deg;</button>
-          <button id="bw180">180&deg;</button>
+        <div class="legend"><span class="legend-title">Sector</span>
+          <span class="sw" style="background:#f85149">1</span>
+          <span class="sw" style="background:#3fb950">2</span>
+          <span class="sw" style="background:#4f9dff">3</span>
         </div>
-      </div>
-      <div class="legend">
-        <span class="lrow"><span class="sw" style="background:#f85149"></span>1</span>
-        <span class="lrow"><span class="sw" style="background:#3fb950"></span>2</span>
-        <span class="lrow"><span class="sw" style="background:#4f9dff"></span>3</span>
       </div>
     </div>
 

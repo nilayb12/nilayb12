@@ -22,6 +22,10 @@ let searchedSap=null;        // searched site highlight (sap_id) or null
 
 // ---- data arrays (populated from a loaded CSV) ----
 let lat,lon,az,siteOf,suffix,setId,sites;
+let setType=new Map();       // set_id -> site_type (2/3) when the CSV provides it
+let hasSiteType=false;
+let beamwidthLocked=false;   // true when selection's site_type drives beamwidth
+const TYPE_TO_BW = {2:180, 3:120};   // 2-sector sites = 180deg, 3-sector = 120deg
 let uniqueSets=0;
 const selected = new Set();  // selected set_ids
 let dataLoaded=false;
@@ -44,10 +48,13 @@ function parseCSV(text){
     lon: ['longitude','long','lon'],
     set: ['set_id']
   };
+  const OPTIONAL = { type: ['site_type','sector_count','sec_count'] };
   const resolve = names => { for(const n of names){ const idx=header.indexOf(n); if(idx>=0) return idx; } return -1; };
   const ci = { sap:resolve(ALIASES.sap), sec:resolve(ALIASES.sec), az:resolve(ALIASES.az),
-               lat:resolve(ALIASES.lat), lon:resolve(ALIASES.lon), set:resolve(ALIASES.set) };
+               lat:resolve(ALIASES.lat), lon:resolve(ALIASES.lon), set:resolve(ALIASES.set),
+               type:resolve(OPTIONAL.type) };   // -1 if absent (optional)
   for(const [k,v] of Object.entries(ci)){
+    if(k==='type') continue;                    // site_type is optional
     if(v<0) throw new Error('Missing required column. Expected one of: '+ALIASES[k].join(', '));
   }
   const rows=[];
@@ -58,7 +65,8 @@ function parseCSV(text){
     const la=parseFloat(p[ci.lat]), lo=parseFloat(p[ci.lon]), a=parseFloat(p[ci.az]);
     const sid=parseInt(p[ci.set],10);
     if(!isFinite(la)||!isFinite(lo)||!isFinite(a)||!Number.isFinite(sid)) continue;
-    rows.push([ (p[ci.sap]||'').trim(), (p[ci.sec]||'').trim(), a, la, lo, sid ]);
+    const stype = ci.type>=0 ? parseInt(p[ci.type],10) : NaN;   // 2, 3, or NaN
+    rows.push([ (p[ci.sap]||'').trim(), (p[ci.sec]||'').trim(), a, la, lo, sid, stype ]);
   }
   return rows;
 }
@@ -69,8 +77,10 @@ function ingest(rows){
   lat=new Float32Array(N); lon=new Float32Array(N); az=new Uint16Array(N);
   suffix=new Uint8Array(N); setId=new Uint32Array(N); siteOf=new Uint32Array(N);
   sites=[]; const sidx=new Map(); const us=new Set();
+  setType=new Map();          // set_id -> site_type (2 or 3), if provided
+  hasSiteType=false;
   for(let i=0;i<N;i++){
-    const [sap,sec,a,la,lo,sid]=rows[i];
+    const [sap,sec,a,la,lo,sid,stype]=rows[i];
     lat[i]=la; lon[i]=lo; az[i]=((Math.round(a)%360)+360)%360;
     let si=sidx.get(sap);
     if(si===undefined){ si=sites.length; sidx.set(sap,si); sites.push(sap); }
@@ -80,6 +90,7 @@ function ingest(rows){
     suffix[i]= Number.isFinite(sfx) ? (sfx & 0xFF) : 0;
     setId[i]=sid>=0 ? sid : 0;
     us.add(setId[i]);
+    if(Number.isFinite(stype)){ hasSiteType=true; if(!setType.has(setId[i])) setType.set(setId[i], stype); }
   }
   uniqueSets=us.size;
   dataLoaded=true;
@@ -93,6 +104,7 @@ async function loadCSVText(text){
   selected.clear();
   document.getElementById('selN').textContent='0';
   searchedSap=null;
+  syncBeamwidthLock();
   refreshSetList(); rebuildLayers();
 }
 function secId(i){ return sites[siteOf[i]]+'_'+suffix[i]; }
@@ -320,7 +332,8 @@ function refreshSetList(){
   let html=shown.map(id=>{
     const sel=selected.has(id)?' checked':'';
     const cls=selected.has(id)?' class="setrow sel"':' class="setrow"';
-    return '<label'+cls+' data-id="'+id+'"><input type="checkbox"'+sel+'> Set '+id+
+    return '<label'+cls+' data-id="'+id+'"><input type="checkbox"'+sel+'>'+
+           '<span class="sid">Set '+id+'</span>'+
            '<span class="n">'+seen.get(id)+' sec</span></label>';
   }).join('');
   if(ids.length>MAX_SETS_LIST){
@@ -338,12 +351,14 @@ function toggleSet(id, on, row){
   if(on) selected.add(id); else selected.delete(id);
   if(row) row.classList.toggle('sel', on);
   document.getElementById('selN').textContent=selected.size.toLocaleString();
+  syncBeamwidthLock();
   rebuildLayers();
 }
 
 document.getElementById('clearSel').addEventListener('click',()=>{
   selected.clear();
   document.getElementById('selN').textContent='0';
+  syncBeamwidthLock();
   refreshSetList(); rebuildLayers();
 });
 
@@ -383,15 +398,41 @@ btnPx.addEventListener('click',()=>applyMode('px'));
 btnM.addEventListener('click',()=>applyMode('m'));
 
 const bw120=document.getElementById('bw120'), bw180=document.getElementById('bw180');
-function applyBeamwidth(deg){
+const bwLockIcon=document.getElementById('bwLock');
+function setBeamwidth(deg){
   beamwidth=deg; HALF_BW=deg/2;
   bw120.classList.toggle('active', deg===120);
   bw180.classList.toggle('active', deg===180);
-  document.getElementById('subBw').textContent=deg;
+  const sb=document.getElementById('subBw'); if(sb) sb.textContent=deg;
+}
+function applyBeamwidth(deg){          // manual click path
+  if(beamwidthLocked) return;          // ignore while locked to data
+  setBeamwidth(deg);
   rebuildLayers();
 }
 bw120.addEventListener('click',()=>applyBeamwidth(120));
 bw180.addEventListener('click',()=>applyBeamwidth(180));
+
+// derive beamwidth from the selection's site_type when uniform; lock the toggle if so
+function syncBeamwidthLock(){
+  let locked=false, deg=null;
+  if(hasSiteType && selected.size>0){
+    let type=null, uniform=true;
+    for(const sid of selected){
+      const t=setType.get(sid);
+      if(t===undefined){ uniform=false; break; }
+      if(type===null) type=t; else if(type!==t){ uniform=false; break; }
+    }
+    if(uniform && TYPE_TO_BW[type]!==undefined){ locked=true; deg=TYPE_TO_BW[type]; }
+  }
+  beamwidthLocked=locked;
+  // reflect lock state in the UI
+  bw120.disabled=locked; bw180.disabled=locked;
+  document.getElementById('bwctl').classList.toggle('locked', locked);
+  if(bwLockIcon) bwLockIcon.style.display = locked ? 'inline-flex' : 'none';
+  if(locked && deg!==beamwidth) setBeamwidth(deg);
+  return locked;
+}
 
 // debounce rapid slider input into ~1 rebuild per animation frame
 let rebuildQueued=false;
@@ -694,7 +735,49 @@ function flyToSite(siteName){
   for(let i=0;i<N;i++){ if(sites[siteOf[i]]===siteName){ searchedSap=siteName; map.flyTo({center:[lon[i],lat[i]],zoom:15}); rebuildLayers(); return true; } }
   return false;
 }
+
+// ---- search mode (Site / Set) ----
+let searchMode='site';
+const smSite=document.getElementById('smSite'), smSet=document.getElementById('smSet');
+function setSearchMode(mode){
+  searchMode=mode;
+  smSite.classList.toggle('active', mode==='site');
+  smSet.classList.toggle('active', mode==='set');
+  q.placeholder = mode==='site' ? 'Search SAP / site ID...' : 'Search set ID (number)...';
+  q.value=''; resBox.style.display='none';
+}
+smSite.addEventListener('click',()=>setSearchMode('site'));
+smSet.addEventListener('click',()=>setSearchMode('set'));
+
+// select a set: check it in the list (if visible), draw it, and let beamwidth lock sync
+function selectSet(id){
+  selected.add(id);
+  document.getElementById('selN').textContent=selected.size.toLocaleString();
+  // reflect in the in-view list checkbox if present
+  const row=document.querySelector('.setrow[data-id="'+id+'"]');
+  if(row){ row.classList.add('sel'); const cb=row.querySelector('input'); if(cb) cb.checked=true; }
+  syncBeamwidthLock();
+  rebuildLayers();
+}
+
+function doSearchSet(){
+  const term=q.value.trim();
+  if(!term) return;
+  const id=parseInt(term,10);
+  if(!Number.isFinite(id) || String(id)!==term.replace(/^0+(?=\d)/,'')){
+    resBox.innerHTML='<div>Enter a numeric set ID</div>'; resBox.style.display='block'; return;
+  }
+  // does this set exist in the data?
+  let exists=false;
+  for(let i=0;i<N;i++){ if(setId[i]===id){ exists=true; break; } }
+  if(!exists){ resBox.innerHTML='<div>No set '+id+' in data</div>'; resBox.style.display='block'; return; }
+  if(selected.has(id)){ resBox.innerHTML='<div>Set '+id+' already selected</div>'; resBox.style.display='block'; return; }
+  selectSet(id);
+  resBox.style.display='none';
+}
+
 function doSearch(){
+  if(searchMode==='set'){ doSearchSet(); return; }
   const term=q.value.trim();
   if(!term)return;
   const parts=term.split(',');
